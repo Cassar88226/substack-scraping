@@ -22,9 +22,9 @@ def get_options():
     options.add_argument("--disable-gpu")
     return options
 
-parser = argparse.ArgumentParser(description="Fuzzy Matching Application")
-parser.add_argument('-u', '--username',  required=False, type=str, default="kingdragon2108@gmail.com", help="Input User Email")
-parser.add_argument('-p', '--password', required=False, type=str, default="123456789", help="Input Password")
+parser = argparse.ArgumentParser(description="Substack Scraping Application")
+parser.add_argument('-u', '--username',  required=True, type=str, help="Input User Email")
+parser.add_argument('-p', '--password', required=True, type=str, help="Input Password")
 args = parser.parse_args()
 if __name__ == "__main__":
     user_email = args.username
