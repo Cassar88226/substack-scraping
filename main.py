@@ -102,17 +102,32 @@ if __name__ == "__main__":
     time.sleep(4)
 
     # Scroll down the page multiple times to load more content
-    for _ in range(400):
+    # for _ in range(400):
+    #     element = driver.find_element(By.XPATH, '/html/body')
+    #     element.send_keys(Keys.END)
+    #     # element.send_keys(Keys.END)
+    #     # footer_element = driver.find_element(By.XPATH, '//*[@id="main"]/div[3]/div[2]/div/div[2]')
+    #     # if footer_element:
+    #     #     break
+    #     time.sleep(0.3)
+    reached_page_end = False
+    last_height = driver.execute_script("return document.body.scrollHeight")
+
+    while not reached_page_end:
         element = driver.find_element(By.XPATH, '/html/body')
         element.send_keys(Keys.END)
-        time.sleep(0.1)
-
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if last_height == new_height:
+            reached_page_end = True
+        else:
+            last_height = new_height
     # Extract links to individual posts
     parent_element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]/div/div/div/div[2]')
     link_elements = parent_element.find_elements(By.CSS_SELECTOR, '[data-testid="post-preview-title"]')
 
     href = [link.get_attribute("href") for link in link_elements]
-    print(href)
+    print(len(href))
 
     # Loop through the extracted links
     for i, url in enumerate(href, start=1):
