@@ -13,8 +13,9 @@ def get_options():
     # Set up Chrome WebDriver with options
     options = webdriver.ChromeOptions()
     # Disable the first run dialog and other similar popups
+    options.add_argument("--headless=new")
+    options.add_argument('--no-sandbox')
     options.add_argument("--no-first-run")
-    options.add_argument("--no-default-browser-check")
     options.add_argument("--disable-infobars")
     options.add_argument("--disable-notifications")
     options.add_argument("--disable-extensions")
@@ -31,12 +32,6 @@ if __name__ == "__main__":
     user_pwd = args.password
     options = get_options()
     driver = webdriver.Chrome(options=options)
-    driver.maximize_window()
-
-    # Open a new tab and switch to the first tab
-    driver.execute_script("window.open('about:blank','secondtab');")
-    window_handles = driver.window_handles
-    driver.switch_to.window(window_handles[0])
 
     # Navigate to the target website
     driver.get("https://chamath.substack.com/archive?sort=new")
@@ -99,31 +94,30 @@ if __name__ == "__main__":
         continue_button.click()
     except (NoSuchElementException, TimeoutException):
         print("Continue button not found")
-    time.sleep(4)
+    time.sleep(5)
+    
+    driver.get("https://chamath.substack.com/archive?sort=new")
+    time.sleep(2)
 
+    high_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div[2]/div/div/div/div[2]')))
     # Scroll down the page multiple times to load more content
-    # for _ in range(400):
-    #     element = driver.find_element(By.XPATH, '/html/body')
-    #     element.send_keys(Keys.END)
-    #     # element.send_keys(Keys.END)
-    #     # footer_element = driver.find_element(By.XPATH, '//*[@id="main"]/div[3]/div[2]/div/div[2]')
-    #     # if footer_element:
-    #     #     break
-    #     time.sleep(0.3)
     reached_page_end = False
     last_height = driver.execute_script("return document.body.scrollHeight")
-
+    end_key = 0
     while not reached_page_end:
         element = driver.find_element(By.XPATH, '/html/body')
         element.send_keys(Keys.END)
-        time.sleep(2)
+        end_key += 1
+        time.sleep(3)
         new_height = driver.execute_script("return document.body.scrollHeight")
         if last_height == new_height:
             reached_page_end = True
         else:
             last_height = new_height
     # Extract links to individual posts
+    print("end_key", end_key)
     parent_element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]/div/div/div/div[2]')
+    
     link_elements = parent_element.find_elements(By.CSS_SELECTOR, '[data-testid="post-preview-title"]')
 
     href = [link.get_attribute("href") for link in link_elements]
@@ -131,25 +125,13 @@ if __name__ == "__main__":
 
     # Loop through the extracted links
     for i, url in enumerate(href, start=1):
-        driver.switch_to.window(window_handles[1])
         driver.get(url)
         time.sleep(4)
-
-        # Handle popups in the post pages
-        # post_popup_xpaths = [
-        #     '/html/body/div/div[1]/div[2]/div[1]/div/div/div/a/button',
-        #     '/html/body/div/div[1]/div[2]/div/div[1]/div/article/div[2]/div[4]/div'
-        # ]
-        
-        # for xpath in post_popup_xpaths:
-        #     handle_popup(xpath)
-        #     time.sleep(2)
-
+        element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div[2]')))
         # Extract inner HTML content
         try:
             element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
             inner_html = element.get_attribute("innerHTML")
-
             # Use regular expressions to clean up inner HTML content
             patterns = [
                 r'<div inert="" role="dialog".*?Other</div></button></div></div></div></div></div></div></div></div>',
@@ -170,11 +152,14 @@ if __name__ == "__main__":
 
             with open(f'{i} {filename}.html', 'w', encoding='utf-8') as file:
                 file.write(inner_html)
-        except NoSuchElementException:
+        except NoSuchElementException as e:
+            element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
+            inner_html = element.get_attribute("innerHTML")
+            with open(f'{i}.html', 'w', encoding='utf-8') as file:
+                file.write(inner_html)
+            print(e)
             print("No title found or content extraction failed")
 
-    # Switch back to the first tab
-    driver.switch_to.window(window_handles[0])
     # Uncomment this line to close the WebDriver
     driver.quit()
 

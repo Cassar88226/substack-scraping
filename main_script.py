@@ -14,7 +14,7 @@ def get_options():
     options = webdriver.ChromeOptions()
     # Disable the first run dialog and other similar popups
     # options.add_argument("--headless")
-    # options.add_argument("--headless=new")
+    options.add_argument("--headless=new")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
     options.add_argument("--disable-infobars")
@@ -41,12 +41,6 @@ args = parser.parse_args()
 def main(substack, user_email, user_pwd):
     options = get_options()
     driver = webdriver.Chrome(options=options)
-    driver.maximize_window()
-
-    # Open a new tab and switch to the first tab
-    driver.execute_script("window.open('about:blank','secondtab');")
-    window_handles = driver.window_handles
-    driver.switch_to.window(window_handles[0])
 
     # Navigate to the target website
     driver.get("https://{}.substack.com/archive?sort=new".format(substack))
@@ -101,7 +95,12 @@ def main(substack, user_email, user_pwd):
         continue_button.click()
     except (NoSuchElementException, TimeoutException):
         print("Continue button not found")
-    time.sleep(4)
+    time.sleep(5)
+
+    driver.get("https://chamath.substack.com/archive?sort=new")
+    time.sleep(2)
+
+    high_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div[2]/div/div/div/div[2]')))
 
     reached_page_end = False
     last_height = driver.execute_script("return document.body.scrollHeight")
@@ -124,15 +123,13 @@ def main(substack, user_email, user_pwd):
 
     # Loop through the extracted links
     for i, url in enumerate(href, start=1):
-        driver.switch_to.window(window_handles[1])
         driver.get(url)
         time.sleep(4)
-
+        element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div[2]')))
         # Extract inner HTML content
         try:
             element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
             inner_html = element.get_attribute("innerHTML")
-
             # Use regular expressions to clean up inner HTML content
             patterns = [
                 r'<div inert="" role="dialog".*?Other</div></button></div></div></div></div></div></div></div></div>',
@@ -153,11 +150,14 @@ def main(substack, user_email, user_pwd):
 
             with open(f'{i} {filename}.html', 'w', encoding='utf-8') as file:
                 file.write(inner_html)
-        except NoSuchElementException:
+        except NoSuchElementException as e:
+            element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
+            inner_html = element.get_attribute("innerHTML")
+            with open(f'{i}.html', 'w', encoding='utf-8') as file:
+                file.write(inner_html)
+            print(e)
             print("No title found or content extraction failed")
 
-    # Switch back to the first tab
-    driver.switch_to.window(window_handles[0])
     # Uncomment this line to close the WebDriver
     driver.quit()
 
