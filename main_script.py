@@ -35,7 +35,7 @@ def handle_popup(driver, xpath):
 parser = argparse.ArgumentParser(description="Substack Scraping Application")
 parser.add_argument('-u', '--username',  required=True, type=str, help="Input User Email")
 parser.add_argument('-p', '--password', required=True, type=str, help="Input Password")
-parser.add_argument('-s', '--substack', required=True, type=str, help="Input Substack")
+parser.add_argument('-s', '--substack', required=True, type=str, help="Input Substack Site Url")
 args = parser.parse_args()
 
 def main(substack, user_email, user_pwd):
@@ -43,7 +43,7 @@ def main(substack, user_email, user_pwd):
     driver = webdriver.Chrome(options=options)
 
     # Navigate to the target website
-    driver.get("https://{}.substack.com/archive?sort=new".format(substack))
+    driver.get("{}".format(substack))
     time.sleep(2)
 
     # Define the XPaths for the popups
@@ -97,7 +97,7 @@ def main(substack, user_email, user_pwd):
         print("Continue button not found")
     time.sleep(5)
 
-    driver.get("https://chamath.substack.com/archive?sort=new")
+    driver.get("{}".format(substack))
     time.sleep(2)
 
     high_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="main"]/div[2]/div/div/div/div[2]')))
@@ -145,8 +145,12 @@ def main(substack, user_email, user_pwd):
                 element = driver.find_element(By.CSS_SELECTOR, ".post-title.unpublished")
                 filename = re.sub(r'[^\w\s-]', '', element.text)
             except NoSuchElementException:
-                element = driver.find_element(By.CSS_SELECTOR, ".tw-mt-0.tw-mb-2.tw-leading-tight.sm\\:tw-mb-1.tw-text-3xl.sm\\:tw-text-3xl")
-                filename = re.sub(r'[^\w\s-]', '', element.text)
+                try:
+                    element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]/div/div[1]/div/article/div[3]/div[2]/div[1]/div/div[1]/div/div/div[1]/h2')
+                    filename = re.sub(r'[^\w\s-]', '', element.text)
+                except:
+                    element = driver.find_element(By.CSS_SELECTOR, ".tw-mt-0.tw-mb-2.tw-leading-tight.sm\\:tw-mb-1.tw-text-3xl.sm\\:tw-text-3xl")
+                    filename = re.sub(r'[^\w\s-]', '', element.text)
 
             with open(f'{i} {filename}.html', 'w', encoding='utf-8') as file:
                 file.write(inner_html)
@@ -157,6 +161,8 @@ def main(substack, user_email, user_pwd):
                 file.write(inner_html)
             print(e)
             print("No title found or content extraction failed")
+        except TimeoutException as e:
+            print("timeout exception", i)
 
     # Uncomment this line to close the WebDriver
     driver.quit()
