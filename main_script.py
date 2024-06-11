@@ -8,6 +8,8 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import re
 import argparse
+import os
+from urllib.parse import urlparse
 
 def get_options():
     # Set up Chrome WebDriver with options
@@ -39,6 +41,10 @@ parser.add_argument('-s', '--substack', required=True, type=str, help="Input Sub
 args = parser.parse_args()
 
 def main(substack, user_email, user_pwd):
+    domain_name = urlparse(substack).netloc
+    if not os.path.exists(domain_name):
+        os.makedirs(domain_name)
+
     options = get_options()
     driver = webdriver.Chrome(options=options)
 
@@ -152,12 +158,12 @@ def main(substack, user_email, user_pwd):
                     element = driver.find_element(By.CSS_SELECTOR, ".tw-mt-0.tw-mb-2.tw-leading-tight.sm\\:tw-mb-1.tw-text-3xl.sm\\:tw-text-3xl")
                     filename = re.sub(r'[^\w\s-]', '', element.text)
 
-            with open(f'{i} {filename}.html', 'w', encoding='utf-8') as file:
+            with open(os.path.join(domain_name, f'{i} {filename}.html'), 'w', encoding='utf-8') as file:
                 file.write(inner_html)
         except NoSuchElementException as e:
             element = driver.find_element(By.XPATH, '//*[@id="main"]/div[2]')
             inner_html = element.get_attribute("innerHTML")
-            with open(f'{i}.html', 'w', encoding='utf-8') as file:
+            with open(os.path.join(domain_name, f'{i}.html'), 'w', encoding='utf-8') as file:
                 file.write(inner_html)
             print(e)
             print("No title found or content extraction failed")
@@ -171,5 +177,5 @@ if __name__ == "__main__":
     user_email = args.username
     user_pwd = args.password
     substack = args.substack
-
+    
     main(substack, user_email, user_pwd)
