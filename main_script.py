@@ -114,7 +114,7 @@ def main(substack, user_email, user_pwd):
     while not reached_page_end:
         element = driver.find_element(By.XPATH, '/html/body')
         element.send_keys(Keys.END)
-        time.sleep(2)
+        time.sleep(4)
         new_height = driver.execute_script("return document.body.scrollHeight")
         if last_height == new_height:
             reached_page_end = True
